@@ -9,6 +9,10 @@ from flask_httpauth import HTTPBasicAuth
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from flask_apispec.extension import FlaskApiSpec
+from flask_babel import Babel
+from flask_restful import reqparse, request
+
+
 
 # from flasgger import Swagger
 
@@ -20,18 +24,7 @@ security_definitions = {
 
 app = Flask(__name__)
 app.config.from_object(Config)
-app.config.update({
-    'APISPEC_SPEC': APISpec(
-        title='Notes Project',
-        version='v1',
-        plugins=[MarshmallowPlugin()],
-        securityDefinitions=security_definitions,
-        security=[],
-        openapi_version='2.0.0'
-    ),
-    'APISPEC_SWAGGER_URL': '/swagger',  # URI API Doc JSON
-    'APISPEC_SWAGGER_UI_URL': '/swagger-ui'  # URI UI of API Doc
-})
+
 
 api = Api(app)
 db = SQLAlchemy(app)
@@ -39,6 +32,7 @@ migrate = Migrate(app, db)
 ma = Marshmallow(app)
 auth = HTTPBasicAuth()
 docs = FlaskApiSpec(app)
+babel = Babel(app)
 
 
 # swagger = Swagger(app)
@@ -63,3 +57,7 @@ def verify_password(username_or_token, password):
 @auth.get_user_roles
 def get_user_roles(user):
     return g.user.get_roles()
+
+@babel.localeselector
+def get_locale():
+   return request.accept_languages.best_match(app.config['LANGUAGES'])

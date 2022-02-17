@@ -5,6 +5,7 @@ from api.schemas.note import NoteSchema
 from flask_apispec.views import MethodResource
 from flask_apispec import marshal_with, use_kwargs, doc
 from webargs import fields
+from flask_babel import _
 
 
 @doc(description='Api for notes.', tags=['Users'])
@@ -92,7 +93,8 @@ class UsersListResource(MethodResource):
         user = UserModel(**kwargs)
         user.save()
         if not user.id:
-            abort(400, error=f"User with username:{user.username} already exist")
+            # abort(400, error=f"User with username:{user.username} already exists")
+            abort(404, error=_("User with username %(username)s already exists", username=user.username, id=user.id))  # Flask Babel syntaxis.
         return user, 201
 
 @doc(tags=['Users'])

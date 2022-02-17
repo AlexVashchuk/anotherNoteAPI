@@ -6,8 +6,9 @@ from api.schemas.note import note_schema, notes_schema, NoteSchema, NoteRequestS
 from flask_apispec import doc, marshal_with, use_kwargs
 from flask_apispec.views import MethodResource
 from webargs import fields
-from sqlalchemy import or_, and_
+from helpers.shortcuts import get_or_404
 
+@doc(tags=["Notes"])
 class NoteResource(MethodResource):
     @auth.login_required
     def get(self, note_id):
@@ -43,12 +44,15 @@ class NoteResource(MethodResource):
         note.save()
         return note_schema.dump(note), 200
 
+    @doc(summary="Delete note", description="Authorized user can archive own notes")
+    @auth.login_required
     def delete(self, note_id):
-        """
-        Пользователь может удалять ТОЛЬКО свои заметки
-        """
-        raise NotImplemented("Метод не реализован")
-        return note_dict, 200
+        auth_user = g.user
+        note = get_or_404(NoteModel, note_id)
+        if note.author_id != auth_user.id:
+            abort(403, error=f"Forbidden")
+        note.delete()
+        return f"Note with id {note_id} was archived", 204 #Ok without body
 
 
 @doc(tags=["Notes"])
@@ -111,3 +115,15 @@ class NotesFilterResource(MethodResource):
             notes = NoteModel.query.join(NoteModel.author).filter(UserModel.username.in_(kwargs['username']))
         return notes, 200
 
+@doc(tags=["Notes"])
+class NoteRestoreResource(MethodResource):
+    @doc(summary="Note restore")
+    @doc(security=[{"basicAuth": []}])
+    @auth.login_required
+    def put(self, note_id):
+        auth_user = g.user
+        note = get_or_404(NoteModel, note_id)
+        if note.author_id != auth_user:
+            abort(403, error=f"Forbidden")
+        note.restore()
+        return f"note restored", 200
